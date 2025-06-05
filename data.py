@@ -1,6 +1,8 @@
 import pandas as pd
 import torch
 
+from utils import StandardScaler, MinMaxScaler
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -31,9 +33,12 @@ class PolyCSTRDataset(torch.utils.data.Dataset):
         self.state_dim = len(state_labels)
         self.action_dim = len(action_labels)
 
+        self.state_scaler = StandardScaler(self.data[state_labels].values)
+        self.states = torch.from_numpy(self.state_scaler.transform(self.data[state_labels].values)).float().to(device)
+        self.action_scaler = MinMaxScaler(self.data[action_labels].values)
+        self._actions = torch.from_numpy(self.action_scaler.transform(self.data[action_labels].values)).float().to(device)
+        
         self._get_dones()
-        self.states = torch.from_numpy(self.data[state_labels].values).float().to(device)
-        self._actions = torch.from_numpy(self.data[action_labels].values).float().to(device)
         self._get_next_states()
         self._get_next_actions()
         self.actions = self.next_actions - self._actions
@@ -92,3 +97,13 @@ class PolyCSTRDataset(torch.utils.data.Dataset):
         state = torch.tensor(row[self.state_labels].values, dtype=torch.float32).to(device)
         action = torch.tensor(row[self.action_labels].values, dtype=torch.float32).to(device)
         return state, action
+
+if __name__ == "__main__":
+
+    dataset = PolyCSTRDataset()
+    data = dataset.sample(batch_size=256)
+
+    print(dataset.len)
+    
+    for key, val in data.items():
+        print(key, type(val), val.shape)
