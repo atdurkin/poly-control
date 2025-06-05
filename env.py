@@ -78,18 +78,19 @@ class PolyCSTR(gym.Env):
             while not done:
                 obs, _, done, _, info = self.step_with_pi_control()
 
-                rollout_records.append({
-                    "episode": ep,
-                    "time": t / 60,  # convert to minutes
-                    "polymer": obs[4],
-                    "temperature": obs[5],
-                    "initiator_action": info["action"][0],
-                    "coolant_action": info["action"][1],
-                    "error_polymer": info["error_polymer"],
-                    "error_temperature": info["error_temperature"],
-                    "integral_error_polymer": info["integral_error_polymer"],
-                    "integral_error_temperature": info["integral_error_temperature"]
-                })
+                if t % 120 == 0:  # Record every 2 minutes
+                    rollout_records.append({
+                        "episode": ep,
+                        "time": t / 60,  # convert to minutes
+                        "polymer": obs[4],
+                        "temperature": obs[5],
+                        "initiator_action": info["action"][0],
+                        "coolant_action": info["action"][1],
+                        "error_polymer": info["error_polymer"],
+                        "error_temperature": info["error_temperature"],
+                        "integral_error_polymer": info["integral_error_polymer"],
+                        "integral_error_temperature": info["integral_error_temperature"]
+                    })
 
                 t += self.time_step
 
@@ -114,7 +115,7 @@ class PolyCSTR(gym.Env):
         self.current_time = 0.0
         
         self.integral_error_polymer = 0.0
-        self.integral_error_temp = 0.0
+        self.integral_error_temperature = 0.0
         self.Kp_P = 0.1   * self.np_random.uniform(0.2, 5)
         self.Ki_P = 0.0005 * self.np_random.uniform(0.2, 5)
         self.Kp_T = 0.2   * self.np_random.uniform(0.2, 5)
@@ -126,10 +127,10 @@ class PolyCSTR(gym.Env):
 
     def step(self, action):
         initiator_feed = np.clip(action[0], self.initiator_min, self.initiator_max)
-        coolant_temp = np.clip(action[1], self.coolant_temp_min, self.coolant_temp_max)
+        coolant_temperature = np.clip(action[1], self.coolant_temp_min, self.coolant_temp_max)
 
         sol = solve_ivp(
-            lambda t, y: self._reactor_ode(t, y, initiator_feed, coolant_temp),
+            lambda t, y: self._reactor_ode(t, y, initiator_feed, coolant_temperature),
             [0, self.time_step],
             self.state,
             method="BDF",
@@ -155,7 +156,7 @@ class PolyCSTR(gym.Env):
             "error_polymer": self.setpoint_polymer - self.state[4],
             "error_temperature": self.setpoint_temperature - self.state[5],
             "integral_error_polymer": self.integral_error_polymer,
-            "integral_error_temperature": self.integral_error_temp
+            "integral_error_temperature": self.integral_error_temperature
         }
 
     def step_with_pi_control(self, setpoints={"polymer": 0.6, "temperature": 350.0}):
@@ -167,11 +168,11 @@ class PolyCSTR(gym.Env):
 
         # Compute errors
         error_polymer = polymer_target - polymer_measured
-        error_temp = temperature_target - temperature_measured
+        error_temperature = temperature_target - temperature_measured
 
         # Compute raw control actions
         initiator_raw = self.initiator_bias + self.Kp_P * error_polymer + self.Ki_P * self.integral_error_polymer
-        coolant_raw = self.coolant_bias + self.Kp_T * error_temp + self.Ki_T * self.integral_error_temp
+        coolant_raw = self.coolant_bias + self.Kp_T * error_temperature + self.Ki_T * self.integral_error_temperature
 
         # Apply clipping
         initiator_clipped = np.clip(initiator_raw, self.initiator_min, self.initiator_max)
@@ -181,7 +182,7 @@ class PolyCSTR(gym.Env):
         if initiator_clipped == initiator_raw:
             self.integral_error_polymer += error_polymer * self.time_step
         if coolant_clipped == coolant_raw:
-            self.integral_error_temp += error_temp * self.time_step
+            self.integral_error_temperature += error_temperature * self.time_step
 
         # Step using the clipped control actions
         return self.step([initiator_clipped, coolant_clipped])
@@ -189,7 +190,7 @@ class PolyCSTR(gym.Env):
     def _rate_constant(self, A, E, T):
         return A * np.exp(-E / (self.gas_constant * T))
 
-    def _reactor_ode(self, t, state, initiator_feed, coolant_temp):
+    def _reactor_ode(self, t, state, initiator_feed, coolant_temperature):
         A, B, I, R, P, T = state
 
         # Reaction rate constants
@@ -216,8 +217,8 @@ class PolyCSTR(gym.Env):
         heat_rxn_B = -860000.0  # J/mol
 
         total_heat_rxn = (heat_rxn_A * rate_prop_A + heat_rxn_B * rate_prop_B) * self.volume
-        heat_removed = self.heat_transfer * (T - coolant_temp)
-        heat_feed = self.dilution_rate * self.heat_capacity * self.density * (coolant_temp - T) * self.volume / 60
+        heat_removed = self.heat_transfer * (T - coolant_temperature)
+        heat_feed = self.dilution_rate * self.heat_capacity * self.density * (coolant_temperature - T) * self.volume / 60
         total_capacity = self.density * self.heat_capacity * self.volume / 1000  # J/K
 
         dT = (total_heat_rxn - heat_removed + heat_feed) / total_capacity
