@@ -11,7 +11,7 @@ state_labels = [
     "temperature",
     "error_polymer",
     "error_temperature",
-    "initiator_action",  # absolution actions in the states
+    "initiator_action",  # absolute actions in the states
     "coolant_action",
 ]
 action_labels = [
