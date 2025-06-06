@@ -224,3 +224,14 @@ class PolyCSTR(gym.Env):
         dT = (total_heat_rxn - heat_removed + heat_feed) / total_capacity
 
         return [dA, dB, dI, dR, dP, dT]
+
+
+if __name__ == "__main__":
+
+    from utils import plot_rollouts
+
+    env = PolyCSTR()
+    df = env.generate_rollouts_with_pi_control(n_episodes=120)
+    df.to_csv("rollouts.csv", index=False)
+    plot_rollouts(df)
+    
