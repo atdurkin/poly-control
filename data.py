@@ -37,9 +37,10 @@ class PolyCSTRDataset(torch.utils.data.Dataset):
         self.states = torch.from_numpy(self.state_scaler.transform(self.data[state_labels].values)).float().to(device)
         
         self._get_dones()
-        self._get_next_states()
-        next_actions = self._get_next_actions()
+        next_states = self._get_next_states()
+        self.next_states = torch.from_numpy(self.state_scaler.transform(next_states.values)).float().to(device)
 
+        next_actions = self._get_next_actions()
         actions = next_actions - self.data[action_labels]
         self.action_scaler = MinMaxScaler(actions.values)
         self.actions = torch.from_numpy(self.action_scaler.transform(actions.values)).float().to(device)
@@ -82,7 +83,7 @@ class PolyCSTRDataset(torch.utils.data.Dataset):
         next_states = self.data[self.state_labels].shift(-1)
         dones = self.data["done"] == 1
         next_states.loc[dones, :] = self.data.loc[dones, self.state_labels].copy()
-        self.next_states = torch.from_numpy(next_states.values).float().to(device)
+        return next_states
 
     def _get_next_actions(self):
         next_actions = self.data[self.action_labels].shift(-1)
