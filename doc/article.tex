@@ -1,0 +1,70 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage[numbers]{natbib}
+
+
+% Page geometry
+\geometry{margin=1in}
+
+\title{Your Article Title}
+\author{Author Name}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+A brief summary of the article goes here.
+\end{abstract}
+
+\section{Introduction}
+
+
+\section{Background}
+
+\subsection{Gaussian processes for Bayesian optimisation}
+
+Gaussian processes (GPs) provide a probabilistic framework for modelling unknown functions and are a foundational component of Bayesian optimisation (BO) \cite{Rasmussen2006Gaussian}.
+A GP defines a distribution over functions, where any finite set of function values is jointly Gaussian.
+This non-parametric approach allows for flexible modelling without requiring a specific functional form, which is particularly useful when the objective function is expensive to evaluate or not analytically tractable.
+
+A GP is specified by a mean function and a covariance function.
+The mean function reflects prior beliefs about the average behaviour of the function and is often assumed to be zero for simplicity.
+The covariance function, also known as the kernel, encodes assumptions about the smoothness, amplitude, and overall structure of the function.
+
+In BO, GPs are used as surrogate models to approximate the true objective function.
+Based on observed data, the posterior of the GP provides both a prediction of the function value and a measure of uncertainty at any new input. 
+This ability to quantify uncertainty is essential for guiding the optimisation process, as it enables a principled balance between exploring uncertain regions and exploiting areas with promising predicted outcomes.
+The analytical properties of GPs, along with their capacity to incorporate prior knowledge, make them particularly effective for efficient global optimisation in settings where evaluations are costly.
+
+\subsection{Trust region Bayesian optimisation}
+
+Trust region Bayesian optimisation (TuRBO) is a class of methods designed to improve the scalability and robustness of BO in high-dimensional or complex search spaces \cite{Eriksson2019Scalable}.
+Traditional BO relies on a global surrogate model, typically a GP, to approximate the objective function and guide the selection of new evaluation points.
+However, in higher dimensions or in the presence of non-stationarities, global surrogate models often become inaccurate or computationally burdensome.
+
+TuRBO addresses these limitations by maintaining one or more local surrogate models, each defined over a trust region bounded around a current incumbent solution.
+Within each trust region, a GP is used to model the local behaviour of the objective function, leveraging the assumption that the function is smoother and more predictable over short distances.
+The trust region is dynamically adjusted: it expands when optimisation within the region is successful, and contracts when improvements stagnate.
+This adaptive mechanism promotes efficient local search while mitigating the risk of over-exploration in poorly modelled regions.
+
+By combining local modelling with principled exploration-exploitation strategies, TuRBO achieves improved sample efficiency and scalability compared to global BO.
+It is particularly effective in high-dimensional settings where global surrogate models fail to capture the structure of the objective function or become computationally intractable.
+
+
+\section{Conclusion}
+
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
